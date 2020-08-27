@@ -170,9 +170,9 @@ return(plot)
 
 
 # Question 1, 4, 5, 7
-FUN.quesType1(1)
+FUN.quesType1(4)
 
-# Question 1, 4, 5, 7
+0# Question 1, 4, 5, 7
 FUN.quesType2(14)
 
 
