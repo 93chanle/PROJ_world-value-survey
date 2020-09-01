@@ -1,18 +1,21 @@
 
+{
 library(Amelia)
 library(stringr)
 library(tidyverse)
 library(readxl)
-
+library(stringi)
+}
 
 # 00. Define colour scheme
+{
 theme_set(theme_bw()) 
 col1 <- "#DEE1B6"
 col2 <- "#73C8A9"
 col3 <- "#E1B866"
 col4 <- "#BD5532"
 col5 <- "#373B44"
-
+}
 
 # 01. Get started ----------------------------------------------------------------------------------
 
@@ -81,28 +84,40 @@ F_Type2 <- function(quesID){
 
 # One question, multiple items, scale
 
-F_Type3 <- function(quesID){
+F_Type3 <- function(quesID, titleNewLine = 50, itemNewLine = 20){
   
   quesData <- data %>% select(matches(paste0(quesID,"($|_|\\.)")))
   question <- stri_split_fixed(quesData[1,1], " - ", tokens_only = F)[[1]][1] 
   
   # Extract the item labels
-  colnames(quesData) <- quesData %>% slice(1) %>% mutate(across(everything(), str_extract, pattern = "(?<= - )[:print:]*(?=.)"))
+  colnames(quesData) <-
+    quesData %>% slice(1) %>% mutate(across(everything(), str_extract, pattern = "(?<= - )[:print:]*(?=.)"))
   quesData <- quesData %>% slice(-1)
-  quesData %>% pivot_longer(everything(), names_to = "Items", values_to = "Responses") %>% table() %>% as_tibble() %>% 
-        ggplot(aes(x = Items, fill = Responses, y = n)) +
-    geom_bar(stat = "identity", position = "dodge") + coord_flip()
   
-  # Create long-format
-  colnames(quesData) <- "ques"
-  n <- quesData %>% filter(is.na(ques) == F) %>% nrow()
-  quesData %>% filter(is.na(ques) == F) %>% 
-    ggplot(aes(x = ques)) + geom_histogram(stat = "count", fill = col4) +
-    labs(title = paste0(question, " (N = ", n, ")"),
-         subtitle = paste0("ID: ", quesID)) +
-    ylab("Count") +
+  quesData <- quesData %>% pivot_longer(everything(), names_to = "Items", values_to = "Responses") %>% 
+    table() %>% as_tibble()
+  n <- sum(quesData$n)
+  
+  plot <- ggplot(quesData, aes(x = createNewLineStringList(Items, itemNewLine), fill = Responses, y = n)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    labs(title = createNewLineString(paste0(question, " (N = ", n, ")"), titleNewLine),
+    subtitle = paste0("ID: ", quesID)) +
+    theme(legend.position = "bottom") +
     coord_flip() +
-    theme(axis.title.y = element_blank())
+    theme(axis.title.y = element_blank(),
+          legend.title = element_blank())
+  
+  return(plot)
+  
+  # # Create long-format
+  # colnames(quesData) <- "ques"
+
+  # quesData %>% filter(is.na(ques) == F) %>% 
+  #   ggplot(aes(x = ques)) + geom_histogram(stat = "count", fill = col4) +
+
+  #   ylab("Count") +
+  #   coord_flip() +
+  #   theme(axis.title.y = element_blank())
   
 }
 
@@ -113,6 +128,44 @@ stri_split_fixed(test, " - ")
 
 
 
-                                
+                               
+quesID = "Q27"
+ 
+F_Type3("Q169", titleNewLine = 80, itemNewLine = 30)
+
+string <- quesData[4,1] %>% pull()
 
 
+stringList = quesData$Items
+a <- createNewLineStringList(stringList, 20)
+
+createNewLineStringList <- function(stringList, newLine = 15){
+  for (i in (1:length(stringList))){
+    stringList[i] <- createNewLineString(stringList[i], newLine = newLine)
+  }
+  return(stringList)
+}
+
+createNewLineString <- function(string, newLine = 15){
+  space <- stri_locate_all_regex(string, "\\s")[[1]][,1]
+    if ((max(space) > newLine) == T){
+      checkLength <- seq(newLine, max(space), by = newLine)
+      for (i in checkLength){
+        toSpace <- max(space[space < i])
+        fromSpace <- min(space[space >= i])
+        if (i - toSpace < fromSpace - i){
+          substr(string, toSpace, toSpace + 2) <- "\n"
+        } else {
+          substr(string, fromSpace, fromSpace + 2) <- "\n"
+        }
+      }
+      return(string)
+    }
+}
+
+createNewLine(quesData$Items[2])
+
+for (i in quesData$Items){
+  a <- createNewLine(i)
+  print(a)
+}
